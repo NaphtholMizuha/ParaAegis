@@ -1,29 +1,17 @@
-from enum import Enum
-from dataclasses import dataclass
-from typing import List
+from ..utils.msg import MsgType, Msg
+from abc import ABC, abstractmethod
 
-class MsgType(Enum):
-    GRADIENT = 0
-    MODEL = 1
-    ENCRYPTED_GRADIENT = 2
-    ENCRYPTED_MODEL = 3
-    PARA_AEGIS = 4
-    
-@dataclass
-class Msg:
-    data: List[bytes]
-    type: MsgType
 
-class BaseClient:
-    def __init__(self, in_msg_type: MsgType, out_msg_type: MsgType):
-        self.in_msg_type = in_msg_type
-        self.out_msg_type = out_msg_type
-        
+class BaseClient(ABC):
+
+    @abstractmethod
     def get(self) -> Msg:
         raise NotImplementedError()
-    
+
+    @abstractmethod
     def run(self):
         raise NotImplementedError()
-    
+
+    @abstractmethod
     def set(self, in_msg: Msg):
         raise NotImplementedError()

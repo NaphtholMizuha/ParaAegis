@@ -1,6 +1,5 @@
 from BaseClient import BaseClient
-from BaseClient import MsgType
-from BaseClient import Msg
+from ..utils.msg import MsgType, Msg
 from ..trainer import Trainer
 import msgpack
 
