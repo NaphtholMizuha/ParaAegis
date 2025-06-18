@@ -4,11 +4,10 @@ from typing import List
 
 
 class MsgType(Enum):
-    GRADIENT = 0
-    MODEL = 1
-    ENCRYPTED_GRADIENT = 2
-    ENCRYPTED_MODEL = 3
-    PARA_AEGIS = 4
+    GRADIENT = 'gradient'
+    ENCRYPTED_GRADIENT = 'encrypted_gradient'
+    PARTIAL_ENCRYPTED_GRADIENT = 'partial_encrypted_gradient'
+    VOTE = 'vote'
 
 
 @dataclass

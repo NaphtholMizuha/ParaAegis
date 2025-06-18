@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 class BaseClient(ABC):
 
     @abstractmethod
-    def get(self) -> Msg:
+    def get(self, msg_type: MsgType) -> Msg:
         raise NotImplementedError()
 
     @abstractmethod
