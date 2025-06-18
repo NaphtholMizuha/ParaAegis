@@ -1,8 +1,6 @@
 from BaseClient import BaseClient
 from ..utils.msg import MsgType, Msg
-from ..trainer import Trainer
-import msgpack
-import numpy as np
+from src.ParaAegis.training.trainer import Trainer
 import ray
 import tenseal as ts
 
@@ -37,11 +35,7 @@ class ParaAegisClient(BaseClient):
 
 
     def set(self, in_msg: Msg):
-
-        match in_msg.type:
-            case MsgType.VOTE:
-
-            case MsgType.PARTIAL_ENCRYPTED_GRADIENT:
+        pass
 
     def run(self):
         """
