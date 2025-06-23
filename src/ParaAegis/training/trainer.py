@@ -51,11 +51,11 @@ class Trainer:
         new_state = self.state + grad
         self.model.load_state_dict(self._unflat(new_state))
         self.state = new_state
-
-    def _flat(self, state: dict[str, torch.Tensor]) -> np.ndarray:
+    @staticmethod
+    def _flat(state: dict[str, torch.Tensor]) -> np.ndarray:
         """Flatten the state dictionary into a 1D numpy array."""
         return np.concatenate([value.cpu().numpy().flatten() for value in state.values()])
-    
+
     def _unflat(self, flat_state: np.ndarray) -> dict[str, torch.Tensor]:
         """Unflatten a 1D numpy array back into a state dictionary."""
         state = {}

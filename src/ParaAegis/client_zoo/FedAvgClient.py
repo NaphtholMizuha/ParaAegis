@@ -1,8 +1,11 @@
-from BaseClient import BaseClient
+import ray
+
+from .BaseClient import BaseClient
 from ..utils.msg import MsgType, Msg
-from src.ParaAegis.training.trainer import Trainer
+from ..training.trainer import Trainer
 import numpy as np
 
+@ray.remote(num_gpus=0.1)
 class FedAvgClient(BaseClient):
     """
     FedAvgClient is a class that implements the Federated Averaging (FedAvg) client.
@@ -28,11 +31,8 @@ class FedAvgClient(BaseClient):
 
         :return: A Msg object containing the serialized gradient.
         """
-        if msg_type != MsgType.GRADIENT:
-            raise TypeError(f"FedAvgClient cannot process type: {msg_type}")
-        
         grad = self.trainer.get_grad()  # Get the gradient from the trainer
-        grad_bytes = grad.dumps()
+        grad_bytes = grad.tobytes()
         if not isinstance(grad_bytes, bytes):
             raise TypeError("Serialized gradient must be of type 'bytes'")
         return Msg([grad_bytes], MsgType.GRADIENT)  # type
@@ -58,4 +58,8 @@ class FedAvgClient(BaseClient):
 
         This method calls the local_train method of the trainer object, passing the number of epochs.
         """
+        print("trainning...")
         self.trainer.local_train(self.n_epochs)  # Perform local training for the specified number of epochs
+
+    def test(self):
+        return self.trainer.test()

@@ -1,10 +1,9 @@
-from src.ParaAegis.client_zoo import BaseClient
-from src.ParaAegis.utils.msg import Msg, MsgType
+from .utils.msg import Msg, MsgType
 import ray
 from typing import List
 
-def fedavg(server, clients, n_epoch):
-    for epoch in range(n_epoch):
+def fedavg(server, clients, n_rounds):
+    for r in range(n_rounds):
         # step 1: model training
         ray.get([client.run.remote() for client in clients])
 
@@ -17,6 +16,10 @@ def fedavg(server, clients, n_epoch):
         # step 4: model distribution
         ray.get([client.set.remote(global_grad) for client in clients])
 
+        # step 5: model evaluation
+        result = ray.get(clients[0].test.remote())
+
+        print(f'Round {r+1}/{n_rounds} loss: {result[0]:.2f}, acc: {result[1] * 100:.2f}%')
 def paraaegis(server, clients, n_epoch):
     for epoch in range(n_epoch):
         # step 1: model training

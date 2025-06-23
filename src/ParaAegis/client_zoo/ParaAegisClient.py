@@ -1,10 +1,10 @@
-from BaseClient import BaseClient
+from .BaseClient import BaseClient
 from ..utils.msg import MsgType, Msg
-from src.ParaAegis.training.trainer import Trainer
+from ..training.trainer import Trainer
 import ray
 import tenseal as ts
 
-@ray.remote()
+@ray.remote
 class ParaAegisClient(BaseClient):
 
     def __init__(

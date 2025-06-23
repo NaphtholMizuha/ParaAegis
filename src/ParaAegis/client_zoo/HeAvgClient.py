@@ -1,12 +1,14 @@
 import ray
 
 from .BaseClient import BaseClient
-from ..utils.msg import MsgType, Msg
+from ..utils import Msg, MsgType, suppress_stdout
 from ..training.trainer import Trainer
 import numpy as np
-
+import tenseal as ts
+import logging
+logging.getLogger("tenseal").setLevel(logging.ERROR)
 @ray.remote(num_gpus=0.1)
-class FedAvgClient(BaseClient):
+class HeAvgClient(BaseClient):
     """
     FedAvgClient is a class that implements the Federated Averaging (FedAvg) client.
     It inherits from the BaseClient class and provides methods for message handling and local training.
@@ -15,7 +17,8 @@ class FedAvgClient(BaseClient):
     def __init__(
         self,
         trainer: Trainer,
-        n_epochs: int
+        n_epochs: int,
+        ckks_bytes: bytes,
     ):
         """
         Initializes the FedAvgClient with input and output message types, a trainer object, and the number of training epochs.
@@ -24,6 +27,7 @@ class FedAvgClient(BaseClient):
         """
         self.trainer = trainer  # Initialize the trainer object
         self.n_epochs = n_epochs  # Set the number of training epochs
+        self.he_ctx = ts.context_from(ckks_bytes)
 
     def get(self, msg_type: MsgType) -> Msg:
         """
@@ -32,10 +36,12 @@ class FedAvgClient(BaseClient):
         :return: A Msg object containing the serialized gradient.
         """
         grad = self.trainer.get_grad()  # Get the gradient from the trainer
-        grad_bytes = grad.tobytes()
+        with suppress_stdout():
+            grad_enc = ts.ckks_vector(self.he_ctx, grad)
+        grad_bytes = grad_enc.serialize()
         if not isinstance(grad_bytes, bytes):
             raise TypeError("Serialized gradient must be of type 'bytes'")
-        return Msg([grad_bytes], MsgType.GRADIENT)  # type
+        return Msg([grad_bytes], MsgType.ENCRYPTED_GRADIENT)  # type
 
     def set(self, in_msg: Msg):
         """
@@ -44,8 +50,10 @@ class FedAvgClient(BaseClient):
         :param in_msg: The incoming message containing the gradient.
         :raises TypeError: If the message type is not supported.
         """
-        if in_msg.type == MsgType.GRADIENT:
-            grad = np.frombuffer(in_msg.data[0], dtype=np.float32)  # Deserialize the gradient from the message
+        if in_msg.type == MsgType.ENCRYPTED_GRADIENT:
+            with suppress_stdout():
+                grad = ts.ckks_vector_from(self.he_ctx, in_msg.data[0])
+            grad = np.array(grad.decrypt())  # Deserialize the gradient from the message
             if not isinstance(grad, np.ndarray):
                 raise TypeError("Deserialized gradient must be of type 'dict'")
             self.trainer.set_grad(grad)  # Set the gradient back to the trainer
