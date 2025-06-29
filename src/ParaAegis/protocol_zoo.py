@@ -9,7 +9,7 @@ def fedavg(server, clients, n_rounds):
 
         # step 2: update collection
         local_grads = ray.get([client.get.remote(MsgType.GRADIENT) for client in clients])
-
+        
         # step 3: model aggregation
         global_grad = ray.get(server.aggregate.remote(local_grads))
 
@@ -20,6 +20,7 @@ def fedavg(server, clients, n_rounds):
         result = ray.get(clients[0].test.remote())
 
         print(f'Round {r+1}/{n_rounds} loss: {result[0]:.2f}, acc: {result[1] * 100:.2f}%')
+        
 def paraaegis(server, clients, n_epoch):
     for epoch in range(n_epoch):
         # step 1: model training

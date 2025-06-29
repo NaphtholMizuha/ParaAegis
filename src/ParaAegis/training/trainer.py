@@ -44,7 +44,8 @@ class Trainer:
             
     def get_grad(self) -> np.ndarray:
         """Get the flattened gradients of the model parameters."""
-        return self._flat(self.model.state_dict()) - self.state
+        new_state = self._flat(self.model.state_dict())
+        return new_state - self.state
     
     def set_grad(self, grad: np.ndarray) -> None:
         """Set the model parameters to the flattened gradients."""
@@ -61,8 +62,8 @@ class Trainer:
         state = {}
         offset = 0
         for key, shape in self.shape.items():
-            size = np.prod(shape)
-            state[key] = torch.tensor(flat_state[offset:offset + size].reshape(shape), device=self.device)
+            size = np.prod(shape).astype(np.int32)
+            state[key] = torch.tensor(flat_state[offset:offset + size].reshape(shape), dtype=torch.float32, device=self.device)
             offset += size
         return state
     

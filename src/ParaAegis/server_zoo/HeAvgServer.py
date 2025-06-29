@@ -3,7 +3,6 @@ import tenseal as ts
 from tenseal import CKKSVector
 
 from .BaseServer import  BaseServer
-from ..utils import suppress_stdout
 from ..utils.msg import Msg, MsgType
 import ray
 
@@ -19,8 +18,8 @@ class HeAvgServer(BaseServer):
             raise TypeError(f"FedAvgServer cannot process MsgType: {msgs[0].type}")
         length = len(msgs)
         # Step 2: 反序列化所有梯度数据
-        with suppress_stdout():
-            gradients = [ts.ckks_vector_from(self.he_ctx, msg.data[0]) for msg in msgs]
+
+        gradients = [ts.ckks_vector_from(self.he_ctx, msg.data[0]) for msg in msgs]
 
         aggregated = None
         for grad in gradients:

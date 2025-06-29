@@ -12,9 +12,10 @@ class FedAvgServer(BaseServer):
         if msgs[0].type != MsgType.GRADIENT:
             raise TypeError(f"FedAvgServer cannot process MsgType: {msgs[0].type}")
 
+
         # Step 2: 反序列化所有梯度数据
         gradients = [np.frombuffer(msg.data[0], dtype=np.float32) for msg in msgs]
-
+        
         # Step 3: 拼接为统一数组
         updates = np.vstack(gradients)
         # Step 4: 计算平均值

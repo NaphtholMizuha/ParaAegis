@@ -24,6 +24,7 @@ class FedAvgClient(BaseClient):
         """
         self.trainer = trainer  # Initialize the trainer object
         self.n_epochs = n_epochs  # Set the number of training epochs
+        self.sgn_history = np.zeros(self.trainer.state.shape)
 
     def get(self, msg_type: MsgType) -> Msg:
         """
@@ -58,8 +59,14 @@ class FedAvgClient(BaseClient):
 
         This method calls the local_train method of the trainer object, passing the number of epochs.
         """
-        print("trainning...")
         self.trainer.local_train(self.n_epochs)  # Perform local training for the specified number of epochs
+        self.grad = self.trainer.get_grad()  # Retrieve the gradient after training
+        self.sgn_history = np.sign(self.grad) + self.sgn_history  # Update the sign history with the current gradient's sign
+        print(self._get_he_idcs().shape)
 
+    def _get_he_idcs(self) -> np.ndarray:
+        he_idcs = np.argwhere(np.sign(self.grad) == self.sgn_history).flatten()  # Get indices where the sign matches the history
+        return he_idcs
+        
     def test(self):
         return self.trainer.test()

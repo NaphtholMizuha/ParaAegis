@@ -30,11 +30,11 @@ if __name__ == '__main__':
     NUM_WORKERS = 2
     N_EPOCHS = 5
     N_ROUNDS = 200
-    LR = 0.0001
+    LR = 0.001
 
     models = [fetch_model(MODEL_NAME).to(DEVICE) for _ in range(N_CLIENTS)]
     init_state = deepcopy(models[0].state_dict())
-    print(Trainer._flat(init_state).shape)
+    
     train_set, test_set = fetch_dataset(DATASET_PATH, DATASET_NAME)
     spliter = fetch_datasplitter(train_set, SPLIT_NAME, N_CLIENTS)
     train_subsets = spliter.split()
@@ -64,5 +64,8 @@ if __name__ == '__main__':
     clients = [FedAvgClient.remote(trainer=trainer, n_epochs=N_EPOCHS) for trainer in trainers]
     server = FedAvgServer.remote()
 
+
     fedavg(server, clients, N_ROUNDS)
+
     ray.shutdown()
+    

@@ -1,7 +1,7 @@
 import ray
 
 from .BaseClient import BaseClient
-from ..utils import Msg, MsgType, suppress_stdout
+from ..utils import Msg, MsgType
 from ..training.trainer import Trainer
 import numpy as np
 import tenseal as ts
@@ -18,7 +18,7 @@ class HeAvgClient(BaseClient):
         self,
         trainer: Trainer,
         n_epochs: int,
-        ckks_bytes: bytes,
+        he_ctx_bytes: bytes,
     ):
         """
         Initializes the FedAvgClient with input and output message types, a trainer object, and the number of training epochs.
@@ -27,7 +27,7 @@ class HeAvgClient(BaseClient):
         """
         self.trainer = trainer  # Initialize the trainer object
         self.n_epochs = n_epochs  # Set the number of training epochs
-        self.he_ctx = ts.context_from(ckks_bytes)
+        self.he_ctx = ts.context_from(he_ctx_bytes)
 
     def get(self, msg_type: MsgType) -> Msg:
         """
@@ -36,8 +36,8 @@ class HeAvgClient(BaseClient):
         :return: A Msg object containing the serialized gradient.
         """
         grad = self.trainer.get_grad()  # Get the gradient from the trainer
-        with suppress_stdout():
-            grad_enc = ts.ckks_vector(self.he_ctx, grad)
+
+        grad_enc = ts.ckks_vector(self.he_ctx, grad)
         grad_bytes = grad_enc.serialize()
         if not isinstance(grad_bytes, bytes):
             raise TypeError("Serialized gradient must be of type 'bytes'")
@@ -51,8 +51,7 @@ class HeAvgClient(BaseClient):
         :raises TypeError: If the message type is not supported.
         """
         if in_msg.type == MsgType.ENCRYPTED_GRADIENT:
-            with suppress_stdout():
-                grad = ts.ckks_vector_from(self.he_ctx, in_msg.data[0])
+            grad = ts.ckks_vector_from(self.he_ctx, in_msg.data[0])
             grad = np.array(grad.decrypt())  # Deserialize the gradient from the message
             if not isinstance(grad, np.ndarray):
                 raise TypeError("Deserialized gradient must be of type 'dict'")
