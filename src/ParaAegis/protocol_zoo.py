@@ -1,28 +1,57 @@
 from .utils.msg import Msg, MsgType
+from .utils import timer
 import ray
 from typing import List
+import polars as pl
 
 def fedavg(server, clients, n_rounds):
+    results = {
+        'acc': [],
+        'loss': [],
+        'train_time': [],
+        'upload_time': [],
+        'aggregate_time': [],
+        'download_time': []
+    }
+    t_train, t_upload, t_aggregate, t_download = 0, 0, 0, 0
     for r in range(n_rounds):
-        # step 1: model training
-        ray.get([client.run.remote() for client in clients])
-
-        # step 2: update collection
-        local_grads = ray.get([client.get.remote(MsgType.GRADIENT) for client in clients])
         
-        # step 3: model aggregation
-        global_grad = ray.get(server.aggregate.remote(local_grads))
+        with timer() as t:
+            # step 1: model training
+            ray.get([client.run.remote() for client in clients])
+            t_train += t()
 
-        # step 4: model distribution
-        ray.get([client.set.remote(global_grad) for client in clients])
+        with timer() as t:
+            # step 2: update collection
+            local_grads = ray.get([client.get.remote(MsgType.GRADIENT) for client in clients])
+            t_upload += t()
+
+        with timer() as t:
+            # step 3: model aggregation
+            global_grad = ray.get(server.aggregate.remote(local_grads))
+            t_aggregate += t()
+
+        with timer() as t:
+            # step 4: model distribution
+            ray.get([client.set.remote(global_grad) for client in clients])
+            t_download += t()
 
         # step 5: model evaluation
-        result = ray.get(clients[0].test.remote())
+        loss, acc = ray.get(clients[0].test.remote())
 
-        print(f'Round {r+1}/{n_rounds} loss: {result[0]:.2f}, acc: {result[1] * 100:.2f}%')
+        print(f'Round {r+1}/{n_rounds} loss: {loss:.2f}, acc: {acc * 100:.2f}%')
+        print(f'Train time: {t_train:.2f}s, Upload time: {t_upload:.2f}s, Aggregate time: {t_aggregate:.2f}s, Download time: {t_download:.2f}s')
+        results['acc'].append(acc)
+        results['loss'].append(loss)
+        results['train_time'].append(t_train)
+        results['upload_time'].append(t_upload)
+        results['aggregate_time'].append(t_aggregate)
+        results['download_time'].append(t_download)
         
-def paraaegis(server, clients, n_epoch):
-    for epoch in range(n_epoch):
+    return pl.DataFrame(results)
+
+def paraaegis(server, clients, n_rounds):
+    for r in range(n_rounds):
         # step 1: model training
         ray.get([client.run.remote() for client in clients])
 
@@ -43,3 +72,11 @@ def paraaegis(server, clients, n_epoch):
 
         # step 7: update distribution
         ray.get([client.set.remote(global_update) for client in clients])
+        
+        result = ray.get(clients[0].test.remote())
+
+        print(f'Round {r+1}/{n_rounds} loss: {result[0]:.2f}, acc: {result[1] * 100:.2f}%')
+        # swanlab.log({
+        #     'acc': result[1],
+        #     'loss': result[0],
+        # })
